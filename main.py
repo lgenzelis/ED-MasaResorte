@@ -4,7 +4,6 @@ from simu_resorte import SimuResorte
 
 # Fuerza externa a tiempo t
 def f_ext_ejemplo(t):
-    _f = 0
     if t < 2 * np.pi:
        _f = 0
     else:
@@ -27,8 +26,6 @@ t_tot = 20.
 step_sim = 10 # a mayor valor, más rápido se va a reproducir la animación
 largo_resorte_eq = 2. # distancia desde la base del resorte hasta la posición de equilibrio
 
-
 if __name__ == '__main__':
     simuResorte = SimuResorte(m, b, k, x0, v0, t_tot, step_sim, largo_resorte_eq, f_ext_ejemplo)
     simuResorte.simulate()
-

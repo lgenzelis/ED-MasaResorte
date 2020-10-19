@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import integrate
-
+import sys
 
 class SimuResorte():
 
@@ -43,6 +43,7 @@ class SimuResorte():
             k += 2
 
         cv2.polylines(self.canvas, dotted_line, False, (120, 120, 120), thickness=1)
+        self._should_stop = None
 
     def _draw_res(self, canvas, xk, fk):
         res_l = (self.largo_resorte_eq + xk) * self.x_scale_factor
@@ -97,7 +98,7 @@ class SimuResorte():
         plt.plot(t[k], x[k], 'ro', markersize=5)
         plt.xlim([0., self.t_tot], )
         plt.xlabel('t [s]', fontsize=12)
-        plt.ylabel('x [m]', fontsize=12)
+        plt.ylabel('x [pie]', fontsize=12)
         plt.show()
 
         # time.sleep(.1)
@@ -106,24 +107,37 @@ class SimuResorte():
 
     def simulate(self):
         n_steps = 1500
-        t = np.linspace(0, self.t_tot, n_steps)
-        y_sol = integrate.solve_ivp(self._dy_dt, [0., self.t_tot], self.y0, t_eval=t)['y']
-        x = y_sol[0]
-        f = np.array([self._f_ext(t_i) for t_i in t])
+        self.t = np.linspace(0, self.t_tot, n_steps)
+        y_sol = integrate.solve_ivp(self._dy_dt, [0., self.t_tot], self.y0, t_eval=self.t)['y']
+        self.x = y_sol[0]
+        self.f = np.array([self._f_ext(t_i) for t_i in self.t])
+        self._animate()
 
+    def _on_key_press(self, event):
+        if (event.key == 'r'):
+            self._should_stop = True
+            self._animate()
+
+    def _animate(self):
+        self._should_stop = False
         plt.ion()
         fig = plt.figure(1, figsize=[6, 3.5])
         fig.canvas.set_window_title('Desplazamiento vs tiempo')
 
-        for k in range(0, len(t), self.step_sim):
-            self._animate_one_cycle(t, x, f, k)
+        fig.canvas.mpl_connect('key_press_event', self._on_key_press)
+
+        for k in range(0, len(self.t), self.step_sim):
+            self._animate_one_cycle(self.t, self.x, self.f, k)
+
+            if self._should_stop:
+                break
 
             # Si esto se cumple el sistema "se rompió" (como en el caso de la resonancia)
-            if self.largo_resorte_eq + x[k] <= 0:
+            if self.largo_resorte_eq + self.x[k] <= 0:
                 print("Sistema destruido :( [http://www.nooooooooooooooo.com/]")
                 break
         else:
-            # esta línea se va a ejectutar si el for finaliza normalmente (sin ningún break)
-            self._animate_one_cycle(t, x, f, len(t)-1)
+            # esta línea se va a ejectutar si el "for" finaliza normalmente (sin ningún break)
+            self._animate_one_cycle(self.t, self.x, self.f, len(self.t)-1)
 
         cv2.waitKey(0)
